@@ -1,0 +1,54 @@
+<UserControl x:Class="Naps2Paperless.Views.ScanView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top bar -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Naps2 Paperless" FontSize="20" FontWeight="Bold"
+                       VerticalAlignment="Center"/>
+            <Button Content="Einstellungen" Command="{Binding OpenSettingsCommand}"
+                    HorizontalAlignment="Right" Padding="12,6"/>
+        </DockPanel>
+
+        <!-- Split mode -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock Text="Split-Modus:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <ComboBox Width="140"
+                      ItemsSource="{Binding SplitModeLabels}"
+                      SelectedIndex="{Binding SelectedSplitModeIndex, Mode=TwoWay}"/>
+        </StackPanel>
+
+        <!-- Scan buttons -->
+        <UniformGrid Grid.Row="2" Columns="5" Margin="0,0,0,12">
+            <Button Content="Glass" Command="{Binding ScanGlassCommand}"
+                    Margin="0,0,6,0" Padding="8,12" FontSize="14"/>
+            <Button Content="Feeder" Command="{Binding ScanFeederCommand}"
+                    Margin="3,0,6,0" Padding="8,12" FontSize="14"/>
+            <Button Content="Duplex" Command="{Binding ScanDuplexCommand}"
+                    Margin="3,0,6,0" Padding="8,12" FontSize="14"/>
+            <Button Content="Manual Duplex" Command="{Binding ScanManualDuplexCommand}"
+                    Margin="3,0,6,0" Padding="8,12" FontSize="14"/>
+            <Button Content="Abbrechen" Command="{Binding CancelCommand}"
+                    Margin="3,0,0,0" Padding="8,12" FontSize="14"
+                    Foreground="Red"/>
+        </UniformGrid>
+
+        <!-- Log output -->
+        <TextBox Grid.Row="3" Text="{Binding LogText, Mode=OneWay}"
+                 IsReadOnly="True" VerticalScrollBarVisibility="Auto"
+                 TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"
+                 Background="#1E1E1E" Foreground="#DCDCDC"
+                 Padding="8" BorderThickness="1" BorderBrush="#333"
+                 x:Name="LogBox"/>
+    </Grid>
+</UserControl>
