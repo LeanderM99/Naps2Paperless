@@ -16,8 +16,12 @@
         <DockPanel Grid.Row="0" Margin="0,0,0,12">
             <TextBlock Text="Naps2 Paperless" FontSize="20" FontWeight="Bold"
                        VerticalAlignment="Center"/>
-            <Button Content="Einstellungen" Command="{Binding OpenSettingsCommand}"
-                    HorizontalAlignment="Right" Padding="12,6"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Dokumente" Command="{Binding OpenDocumentsCommand}"
+                        Padding="12,6" Margin="0,0,8,0"/>
+                <Button Content="Einstellungen" Command="{Binding OpenSettingsCommand}"
+                        Padding="12,6"/>
+            </StackPanel>
         </DockPanel>
 
         <!-- Split mode -->

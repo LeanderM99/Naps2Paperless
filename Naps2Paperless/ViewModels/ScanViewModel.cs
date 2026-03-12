@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using Naps2Paperless.Services;
@@ -23,6 +24,7 @@ public class ScanViewModel : BaseViewModel
         ScanDuplexCommand = new RelayCommand(_ => StartScan("duplex"), _ => !IsScanning);
         ScanManualDuplexCommand = new RelayCommand(_ => StartScan("manualduplex"), _ => !IsScanning);
         OpenSettingsCommand = new RelayCommand(_ => NavigateToSettingsRequested?.Invoke());
+        OpenDocumentsCommand = new RelayCommand(_ => OpenDocumentsInBrowser());
         CancelCommand = new RelayCommand(_ => _cts?.Cancel(), _ => IsScanning);
 
         _scanService.FlipStackRequested += OnFlipStackRequested;
@@ -56,6 +58,7 @@ public class ScanViewModel : BaseViewModel
     public ICommand ScanDuplexCommand { get; }
     public ICommand ScanManualDuplexCommand { get; }
     public ICommand OpenSettingsCommand { get; }
+    public ICommand OpenDocumentsCommand { get; }
     public ICommand CancelCommand { get; }
 
     public event Action? NavigateToSettingsRequested;
@@ -91,6 +94,19 @@ public class ScanViewModel : BaseViewModel
             _cts.Dispose();
             _cts = null;
         }
+    }
+
+    private void OpenDocumentsInBrowser()
+    {
+        var settings = _settingsService.Load();
+        var baseUrl = settings.ApiBaseUrl?.TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            Log("Fehler: API-URL ist nicht konfiguriert. Bitte Einstellungen pruefen.");
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo($"{baseUrl}/documents") { UseShellExecute = true });
     }
 
     private void Log(string message)

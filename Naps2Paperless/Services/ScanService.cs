@@ -23,13 +23,15 @@ public class ScanService
 
         try
         {
+            var effectiveSplitMode = source == "glass" ? "single" : splitMode;
+
             if (source == "manualduplex")
             {
-                scanFiles.AddRange(await ManualDuplexScanAsync(settings, splitMode, tempBase, log, ct));
+                scanFiles.AddRange(await ManualDuplexScanAsync(settings, effectiveSplitMode, tempBase, log, ct));
             }
             else
             {
-                scanFiles.AddRange(await StandardScanAsync(settings, source, splitMode, tempBase, log, ct));
+                scanFiles.AddRange(await StandardScanAsync(settings, source, effectiveSplitMode, tempBase, log, ct));
             }
 
             if (scanFiles.Count == 0)
@@ -124,7 +126,7 @@ public class ScanService
         // Pass 1: front sides, split per page
         log("Vorderseiten werden gescannt (Per Page)...");
         await RunNaps2Async(settings,
-            ["-o", $"{frontBase}.{{num}}.pdf", "-p", settings.ProfileName, "--source", "feeder", "--split"],
+            ["-o", $"{frontBase}.$(n).pdf", "-p", settings.ProfileName, "--source", "feeder", "--split"],
             log, ct);
 
         var frontFiles = Directory.GetFiles(Path.GetTempPath(), "*.pdf")
@@ -147,7 +149,7 @@ public class ScanService
         // Pass 2: back sides, split per page
         log("Rueckseiten werden gescannt (Per Page)...");
         await RunNaps2Async(settings,
-            ["-o", $"{backBase}.{{num}}.pdf", "-p", settings.ProfileName, "--source", "feeder", "--split"],
+            ["-o", $"{backBase}.$(n).pdf", "-p", settings.ProfileName, "--source", "feeder", "--split"],
             log, ct);
 
         var backFiles = Directory.GetFiles(Path.GetTempPath(), "*.pdf")
@@ -210,7 +212,9 @@ public class ScanService
         AppSettings settings, string source, string splitMode, string tempBase,
         Action<string> log, CancellationToken ct)
     {
-        var args = new List<string> { "-o", $"{tempBase}.{{num}}.pdf", "-p", settings.ProfileName, "--source", source };
+        var useSplit = splitMode is "perpage" or "patcht";
+        var outputPath = useSplit ? $"{tempBase}.$(n).pdf" : $"{tempBase}.pdf";
+        var args = new List<string> { "-o", outputPath, "-p", settings.ProfileName, "--source", source };
 
         if (splitMode == "perpage") args.Add("--split");
         else if (splitMode == "patcht") args.Add("--splitpatcht");
