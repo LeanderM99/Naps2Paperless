@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 using Naps2Paperless.Models;
 
 namespace Naps2Paperless.Services;
@@ -20,6 +21,7 @@ public class ScanService
         var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         var tempBase = Path.Combine(Path.GetTempPath(), $"scan_{timestamp}");
         var scanFiles = new List<string>();
+        var failedUploads = new List<string>();
 
         try
         {
@@ -43,16 +45,31 @@ public class ScanService
             foreach (var file in scanFiles)
             {
                 ct.ThrowIfCancellationRequested();
-                await UploadAsync(settings, file, log, ct);
-                File.Delete(file);
-                log($"Hochgeladen: {Path.GetFileName(file)}");
+                var success = await UploadAsync(settings, file, log, ct);
+                if (success)
+                {
+                    File.Delete(file);
+                    log($"Hochgeladen: {Path.GetFileName(file)}");
+                }
+                else
+                {
+                    failedUploads.Add(file);
+                }
+            }
+
+            if (failedUploads.Count > 0)
+            {
+                log($"{failedUploads.Count} Datei(en) konnten nicht hochgeladen werden und wurden beibehalten:");
+                foreach (var f in failedUploads)
+                    log($"  {f}");
+                return;
             }
 
             log("Alle Uploads abgeschlossen!");
         }
         finally
         {
-            foreach (var f in scanFiles.Where(File.Exists))
+            foreach (var f in scanFiles.Where(f => File.Exists(f) && !failedUploads.Contains(f)))
                 File.Delete(f);
         }
     }
@@ -129,10 +146,7 @@ public class ScanService
             ["-o", $"{frontBase}.$(n).pdf", "-p", settings.ProfileName, "--source", "feeder", "--split"],
             log, ct);
 
-        var frontFiles = Directory.GetFiles(Path.GetTempPath(), "*.pdf")
-            .Where(f => f.StartsWith(frontBase))
-            .OrderBy(f => f)
-            .ToList();
+        var frontFiles = FindScanFiles(frontBase);
 
         if (frontFiles.Count == 0)
         {
@@ -152,10 +166,7 @@ public class ScanService
             ["-o", $"{backBase}.$(n).pdf", "-p", settings.ProfileName, "--source", "feeder", "--split"],
             log, ct);
 
-        var backFiles = Directory.GetFiles(Path.GetTempPath(), "*.pdf")
-            .Where(f => f.StartsWith(backBase))
-            .OrderBy(f => f)
-            .ToList();
+        var backFiles = FindScanFiles(backBase);
 
         if (backFiles.Count == 0)
         {
@@ -222,10 +233,7 @@ public class ScanService
         log($"Scanvorgang gestartet ({source})...");
         await RunNaps2Async(settings, args, log, ct);
 
-        var files = Directory.GetFiles(Path.GetTempPath(), "*.pdf")
-            .Where(f => f.StartsWith(tempBase))
-            .OrderBy(f => f)
-            .ToList();
+        var files = FindScanFiles(tempBase);
 
         if (files.Count > 0)
             log($"{files.Count} Datei(en) gescannt.");
@@ -267,9 +275,20 @@ public class ScanService
 
         await process.WaitForExitAsync(ct);
         await Task.WhenAll(outputTask, errorTask);
+
+        if (process.ExitCode != 0)
+            log($"NAPS2 mit Fehlercode {process.ExitCode} beendet.");
     }
 
-    private async Task UploadAsync(AppSettings settings, string filePath, Action<string> log, CancellationToken ct)
+    private static List<string> FindScanFiles(string prefix)
+    {
+        return Directory.GetFiles(Path.GetTempPath(), "*.pdf")
+            .Where(f => f.StartsWith(prefix))
+            .OrderBy(f => Regex.Match(f, @"\.(\d+)\.pdf$") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 0)
+            .ToList();
+    }
+
+    private async Task<bool> UploadAsync(AppSettings settings, string filePath, Action<string> log, CancellationToken ct)
     {
         log($"Lade hoch: {Path.GetFileName(filePath)}...");
 
@@ -289,7 +308,11 @@ public class ScanService
 
         var response = await _http.SendAsync(request, ct);
         if (!response.IsSuccessStatusCode)
+        {
             log($"Upload-Fehler: {response.StatusCode}");
+            return false;
+        }
+        return true;
     }
 
     public event Action<TaskCompletionSource<bool>>? FlipStackRequested;
