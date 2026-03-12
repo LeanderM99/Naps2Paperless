@@ -38,6 +38,12 @@ No test project exists. If adding tests, use a separate xUnit project targeting 
 
 Event-driven: `ScanViewModel.NavigateToSettingsRequested` / `SettingsViewModel.NavigateBackRequested` are wired in `MainWindow.xaml.cs` to swap the ContentControl content.
 
+## Versioning
+
+Versioning is managed via **Git tags** (e.g., `v1.0.1`). No hardcoded version in the codebase. The GitHub Actions release workflow (`.github/workflows/release.yml`) triggers on `v*` tags and produces a zip named `Naps2Paperless-<tag>.zip`.
+
+Current version: **v1.0.1**
+
 ## Conventions
 
 - UI strings are in **German** ("Einstellungen", "Speichern & Zurueck", etc.)
